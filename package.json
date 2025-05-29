@@ -23,16 +23,22 @@
       "public/**/*",
       "package.json"
     ],
-    "mac": { 
-      "target": ["dmg", "zip"],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "category": "public.app-category.developer-tools"
     },
-    "win": { 
+    "win": {
       "target": "nsis",
       "icon": "public/icon.ico"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Development"
     }
   },
@@ -41,12 +47,11 @@
   ],
   "author": "Emre Sanden (KindCoder-no)",
   "license": "ISC",
-  "dependencies": {
-    "electron": "^36.3.2",
-    "electron-builder": "^26.0.12"
-  },
   "devDependencies": {
+    "@types/electron": "^1.6.12",
     "@types/node": "^22.15.24",
+    "electron": "^36.3.2",
+    "electron-builder": "^26.0.12",
     "typescript": "^5.8.3"
   }
 }
