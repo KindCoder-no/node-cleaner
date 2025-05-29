@@ -1,0 +1,16 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="45" fill="#4CAF50" />
+  
+  <!-- node_modules text -->
+  <text x="256" y="160" font-family="Arial, sans-serif" font-size="46" text-anchor="middle" fill="white">node_modules</text>
+  
+  <!-- Folder icon -->
+  <path d="M398 182H256l-40 40H114c-13.3 0-24 10.7-24 24v160c0 13.3 10.7 24 24 24h284c13.3 0 24-10.7 24-24V206c0-13.3-10.7-24-24-24z" fill="#FFC107"/>
+  <path d="M398 182H256l-40 40H114c-13.3 0-24 10.7-24 24v160c0 13.3 10.7 24 24 24h284c13.3 0 24-10.7 24-24V206c0-13.3-10.7-24-24-24z" fill="none" stroke="white" stroke-width="5"/>
+  
+  <!-- Delete/trash icon -->
+  <g transform="translate(256, 300) scale(0.8)">
+    <path d="M -50,-50 L 50,50 M -50,50 L 50,-50" stroke="#F44336" stroke-width="25" stroke-linecap="round"/>
+  </g>
+</svg>

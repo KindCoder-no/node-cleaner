@@ -1,0 +1,52 @@
+{
+  "name": "node-cleaner",
+  "version": "1.0.0",
+  "description": "Simple app to clean and delete all node_modules folders",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && electron .",
+    "dev": "tsc -w & electron .",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:all": "npm run build && electron-builder -mwl"
+  },
+  "build": {
+    "appId": "com.emre.nodemodulescleaner",
+    "productName": "Node Modules Cleaner",
+    "directories": {
+      "output": "release-builds"
+    },
+    "files": [
+      "dist/**/*",
+      "public/**/*",
+      "package.json"
+    ],
+    "mac": { 
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": { 
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Development"
+    }
+  },
+  "keywords": [
+    "Node"
+  ],
+  "author": "Emre Sanden (KindCoder-no)",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^36.3.2",
+    "electron-builder": "^26.0.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.24",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Node Modules Cleaner</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    button#delete-folders {
+      background-color: #f44336;
+    }
+    #results {
+      margin-top: 20px;
+    }
+    .folder-item {
+      padding: 8px;
+      margin: 4px 0;
+      background-color: #f1f1f1;
+      border-radius: 4px;
+    }
+    .total-size {
+      font-weight: bold;
+      margin: 10px 0;
+      font-size: 18px;
+    }
+    .scanning {
+      color: #2196F3;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <h1>Node Modules Cleaner</h1>
+  <p>Select a folder to scan for node_modules directories</p>
+  <button id="select-folder">Select Folder</button>
+  <div id="results"></div>
+  <div id="total" class="total-size"></div>
+  <button id="delete-folders" disabled>Delete All node_modules</button>
+
+  <script src="../dist/renderer.js"></script>
+</body>
+</html>
