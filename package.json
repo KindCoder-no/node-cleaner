@@ -31,8 +31,11 @@
       "category": "public.app-category.developer-tools"
     },
     "win": {
-      "target": "nsis",
-      "icon": "public/icon.ico"
+      "target": [
+        "nsis",
+        "msi"
+      ],
+      "icon": "public/icon.png"
     },
     "linux": {
       "target": [
