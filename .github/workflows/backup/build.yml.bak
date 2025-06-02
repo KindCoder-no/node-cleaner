@@ -4,7 +4,15 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*' ]
-  pull_request:
+  pul      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/windows-builds/**
+            artifacts/macos-builds/**
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}t:
     branches: [ main ]
   workflow_dispatch:
 
@@ -31,7 +39,7 @@ jobs:
       - name: Build Windows app
         run: npm run dist:win
         env:
-          GH_TOKEN: ${{ secrets.TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
 
       - name: Upload Windows artifacts
@@ -60,7 +68,7 @@ jobs:
       - name: Build macOS app
         run: npm run dist:mac
         env:
-          GH_TOKEN: ${{ secrets.TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
 
       - name: Upload macOS artifacts
@@ -82,16 +90,12 @@ jobs:
         with:
           path: artifacts
         
-      - name: Display structure of downloaded files
-        run: ls -R artifacts/
-        shell: bash
-        
       - name: Create Release
         uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
         with:
           files: |
             artifacts/windows-builds/**
             artifacts/macos-builds/**
           generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
