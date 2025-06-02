@@ -27,6 +27,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        
+      # Set version from tag if this is a tag push
+      - name: Update version from tag if needed
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # Extract version from tag (remove 'v' prefix)
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          # Update package.json version
+          npm version $version --no-git-tag-version
+        shell: pwsh
 
       - name: Build Windows app
         run: npm run dist:win
@@ -42,6 +52,9 @@ jobs:
             release-builds/*.exe
             release-builds/*.msi
             release-builds/*.nsis.zip
+          # Exclude blockmap files which cause issues on upload
+          exclude: |
+            **/*.blockmap
   
   build-macos:
     runs-on: macos-latest
@@ -56,6 +69,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        
+      # Set version from tag if this is a tag push
+      - name: Update version from tag if needed
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # Extract version from tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF_NAME#v}
+          # Update package.json version
+          npm version $VERSION --no-git-tag-version
+        shell: bash
 
       - name: Build macOS app
         run: npm run dist:mac
@@ -70,10 +93,14 @@ jobs:
           path: |
             release-builds/*.dmg
             release-builds/*.zip
+          # Exclude blockmap files which cause issues on upload
+          exclude: |
+            **/*.blockmap
 
   # Optional: Create a GitHub release when a tag is pushed
   release:
     needs: [build-windows, build-macos]
+    # Only run this job when a tag is pushed, not for normal commits to main
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
