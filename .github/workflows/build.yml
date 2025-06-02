@@ -31,7 +31,7 @@ jobs:
       - name: Build Windows app
         run: npm run dist:win
         env:
-          GH_TOKEN: ${{ secrets.TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
 
       - name: Upload Windows artifacts
@@ -60,7 +60,7 @@ jobs:
       - name: Build macOS app
         run: npm run dist:mac
         env:
-          GH_TOKEN: ${{ secrets.TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
 
       - name: Upload macOS artifacts
@@ -88,5 +88,5 @@ jobs:
           files: |
             artifacts/windows-builds/**
             artifacts/macos-builds/**
-          token: ${{ secrets.TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           generate_release_notes: true
