@@ -8,6 +8,11 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Add permissions needed for creating releases
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -26,7 +31,8 @@ jobs:
       - name: Build Windows app
         run: npm run dist:win
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TOKEN }}
+          DEBUG: electron-builder
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -54,7 +60,8 @@ jobs:
       - name: Build macOS app
         run: npm run dist:mac
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TOKEN }}
+          DEBUG: electron-builder
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -72,12 +79,14 @@ jobs:
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: artifacts
         
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            windows-builds/**
-            macos-builds/**
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            artifacts/windows-builds/**
+            artifacts/macos-builds/**
+          token: ${{ secrets.TOKEN }}
+          generate_release_notes: true
