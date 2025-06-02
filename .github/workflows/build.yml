@@ -31,7 +31,7 @@ jobs:
       - name: Build Windows app
         run: npm run dist:win
         env:
-          GH_TOKEN: ${{ secrets.TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
 
       - name: Upload Windows artifacts
@@ -60,7 +60,7 @@ jobs:
       - name: Build macOS app
         run: npm run dist:mac
         env:
-          GH_TOKEN: ${{ secrets.TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
 
       - name: Upload macOS artifacts
@@ -86,12 +86,49 @@ jobs:
         run: ls -R artifacts/
         shell: bash
         
+      # Try another release creation method
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: actions/create-release@v1
+        id: create_release
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: |
-            artifacts/windows-builds/**
-            artifacts/macos-builds/**
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
           generate_release_notes: true
+          
+      # Find and upload all artifacts 
+      - name: Find and upload all artifacts
+        run: |
+          echo "Finding all artifacts..."
+          find ./artifacts -type f -name "*.exe" -o -name "*.msi" -o -name "*.zip" -o -name "*.dmg" -o -name "*.AppImage" | while read file; do
+            echo "Uploading $file..."
+            filename=$(basename "$file")
+            echo "Filename: $filename"
+            
+            if [[ "$file" == *".exe" ]]; then
+              content_type="application/vnd.microsoft.portable-executable"
+            elif [[ "$file" == *".msi" ]]; then
+              content_type="application/x-msi"
+            elif [[ "$file" == *".zip" ]]; then
+              content_type="application/zip"
+            elif [[ "$file" == *".dmg" ]]; then
+              content_type="application/x-apple-diskimage"
+            elif [[ "$file" == *".AppImage" ]]; then
+              content_type="application/x-executable"
+            else
+              content_type="application/octet-stream"
+            fi
+            
+            echo "Content type: $content_type"
+            
+            curl \
+              -X POST \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: $content_type" \
+              --data-binary @"$file" \
+              "${{ steps.create_release.outputs.upload_url }}?name=$filename"
+          done
+        shell: bash
