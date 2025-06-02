@@ -90,18 +90,24 @@ jobs:
           path: artifacts
         
       - name: Display structure of downloaded files
-        run: ls -R artifacts/
+        run: |
+          echo "Contents of artifacts directory:"
+          ls -la artifacts/
+          echo "Windows builds:"
+          find ./artifacts/windows-builds -type f | sort
+          echo "macOS builds:"
+          find ./artifacts/macos-builds -type f | sort
         shell: bash
         
       # Try another release creation method
       - name: Create Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         id: create_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -118,89 +124,108 @@ jobs:
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
         shell: bash
         
-      # Use a script to upload all artifacts more dynamically
-      - name: Upload release artifacts
-        run: |
-          VERSION="${{ steps.extract_version.outputs.VERSION }}"
-          echo "Starting uploads for version $VERSION"
-          
-          # Function to upload asset
-          upload_asset() {
-            local filepath="$1"
-            local assetname="$2"
-            local contenttype="$3"
-            
-            echo "Uploading $filepath as $assetname ($contenttype)"
-            
-            # URL encode the asset name
-            local encoded_name=$(echo "$assetname" | sed 's/ /%20/g')
-            
-            # Check if asset already exists
-            local asset_exists=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.id }}/assets" | 
-              grep -c "\"name\":\"$assetname\"")
-            
-            if [[ "$asset_exists" -gt 0 ]]; then
-              echo "Asset $assetname already exists in the release, skipping upload"
-              return 0
-            fi
-            
-            # Perform the upload
-            curl \
-              -X POST \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Content-Type: $contenttype" \
-              -H "Accept: application/vnd.github.v3+json" \
-              --data-binary @"$filepath" \
-              "${{ steps.create_release.outputs.upload_url }}?name=$encoded_name" \
-              --fail || echo "Failed to upload $assetname, continuing..."
-          }
-          
-          # Look for Windows assets
-          for file in $(find ./artifacts/windows-builds -type f | grep -v "\.blockmap$"); do
-            filename=$(basename "$file")
-            # Skip blockmap files - double check to ensure they're excluded
-            if [[ "$filename" == *".blockmap" ]]; then
-              echo "Skipping blockmap file: $filename"
-              continue
-            fi
-            
-            # Process based on file extension
-            if [[ "$filename" == *.exe ]]; then
-              upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-Setup.exe" "application/vnd.microsoft.portable-executable"
-            elif [[ "$filename" == *.msi ]]; then
-              upload_asset "$file" "Node-Modules-Cleaner-${VERSION}.msi" "application/x-msi"
-            elif [[ "$filename" == *.zip ]]; then
-              upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-windows.zip" "application/zip"
-            fi
-          done
-          
-          # Look for macOS assets
-          for file in $(find ./artifacts/macos-builds -type f | grep -v "\.blockmap$"); do
-            filename=$(basename "$file")
-            # Skip blockmap files - double check to ensure they're excluded
-            if [[ "$filename" == *".blockmap" ]]; then
-              echo "Skipping blockmap file: $filename"
-              continue
-            fi
-            
-            # Process based on file extension
-            if [[ "$filename" == *.dmg ]]; then
-              # Check if it's arm64
-              if [[ "$filename" == *-arm64.dmg ]]; then
-                upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-arm64.dmg" "application/x-apple-diskimage"
-              else
-                upload_asset "$file" "Node-Modules-Cleaner-${VERSION}.dmg" "application/x-apple-diskimage"
-              fi
-            elif [[ "$filename" == *.zip ]]; then
-              # Check if it's arm64
-              if [[ "$filename" == *-arm64-mac.zip ]]; then
-                upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-arm64-mac.zip" "application/zip"
-              else
-                upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-mac.zip" "application/zip"
-              fi
-            fi
-          done
+      - name: Install glob (for better file matching)
+        run: npm install -g glob
         shell: bash
+        
+      - name: Find and prepare release assets
+        id: find_assets
+        run: |
+          # Find each type of asset and export as output
+          echo "WIN_EXE=$(find ./artifacts/windows-builds -name "*.exe" | head -1)" >> $GITHUB_OUTPUT
+          echo "WIN_MSI=$(find ./artifacts/windows-builds -name "*.msi" | head -1)" >> $GITHUB_OUTPUT
+          echo "WIN_ZIP=$(find ./artifacts/windows-builds -name "*.zip" | grep -v "blockmap" | head -1)" >> $GITHUB_OUTPUT
+          echo "MAC_DMG=$(find ./artifacts/macos-builds -name "*.dmg" | grep -v "arm64" | head -1)" >> $GITHUB_OUTPUT
+          echo "MAC_ARM_DMG=$(find ./artifacts/macos-builds -name "*arm64*.dmg" | head -1)" >> $GITHUB_OUTPUT
+          echo "MAC_ZIP=$(find ./artifacts/macos-builds -name "*mac.zip" | grep -v "arm64" | head -1)" >> $GITHUB_OUTPUT
+          echo "MAC_ARM_ZIP=$(find ./artifacts/macos-builds -name "*arm64*mac.zip" | head -1)" >> $GITHUB_OUTPUT
+        shell: bash
+        
+      # Upload Windows EXE file
+      - name: Upload Windows EXE
+        if: steps.find_assets.outputs.WIN_EXE != ''
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_assets.outputs.WIN_EXE }}
+          asset_name: Node-Modules-Cleaner-${{ steps.extract_version.outputs.VERSION }}-Setup.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+        continue-on-error: true
+        
+      # Upload Windows MSI file
+      - name: Upload Windows MSI
+        if: steps.find_assets.outputs.WIN_MSI != ''
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_assets.outputs.WIN_MSI }}
+          asset_name: Node-Modules-Cleaner-${{ steps.extract_version.outputs.VERSION }}.msi
+          asset_content_type: application/x-msi
+        continue-on-error: true
+        
+      # Upload Windows ZIP file
+      - name: Upload Windows ZIP
+        if: steps.find_assets.outputs.WIN_ZIP != ''
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_assets.outputs.WIN_ZIP }}
+          asset_name: Node-Modules-Cleaner-${{ steps.extract_version.outputs.VERSION }}-windows.zip
+          asset_content_type: application/zip
+        continue-on-error: true
+        
+      # Upload macOS DMG files
+      - name: Upload macOS DMG (Intel)
+        if: steps.find_assets.outputs.MAC_DMG != ''
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_assets.outputs.MAC_DMG }}
+          asset_name: Node-Modules-Cleaner-${{ steps.extract_version.outputs.VERSION }}.dmg
+          asset_content_type: application/x-apple-diskimage
+        continue-on-error: true
+        
+      - name: Upload macOS DMG (ARM64)
+        if: steps.find_assets.outputs.MAC_ARM_DMG != ''
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_assets.outputs.MAC_ARM_DMG }}
+          asset_name: Node-Modules-Cleaner-${{ steps.extract_version.outputs.VERSION }}-arm64.dmg
+          asset_content_type: application/x-apple-diskimage
+        continue-on-error: true
+        
+      # Upload macOS ZIP files
+      - name: Upload macOS ZIP (Intel)
+        if: steps.find_assets.outputs.MAC_ZIP != ''
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_assets.outputs.MAC_ZIP }}
+          asset_name: Node-Modules-Cleaner-${{ steps.extract_version.outputs.VERSION }}-mac.zip
+          asset_content_type: application/zip
+        continue-on-error: true
+        
+      - name: Upload macOS ZIP (ARM64)
+        if: steps.find_assets.outputs.MAC_ARM_ZIP != ''
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_assets.outputs.MAC_ARM_ZIP }}
+          asset_name: Node-Modules-Cleaner-${{ steps.extract_version.outputs.VERSION }}-arm64-mac.zip
+          asset_content_type: application/zip
+        continue-on-error: true
