@@ -52,3 +52,12 @@ npm run dev
 ## License
 
 ISC © [Emre Sanden](https://github.com/KindCoder-no)
+
+
+## Notes
+Create new release:
+```
+git tag v{{version}}
+
+git push origin v{{version}}
+```
