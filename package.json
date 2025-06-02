@@ -1,6 +1,6 @@
 {
   "name": "node-cleaner",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Simple app to clean and delete all node_modules folders",
   "main": "dist/main.js",
   "scripts": {

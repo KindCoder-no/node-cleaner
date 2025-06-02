@@ -27,25 +27,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        
-      # Set version from tag if this is a tag push
-      - name: Update version from tag if needed
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          # Extract version from tag (remove 'v' prefix)
-          $version = $env:GITHUB_REF_NAME -replace '^v', ''
-          
-          # Get current version from package.json
-          $currentVersion = (Get-Content -Raw -Path package.json | ConvertFrom-Json).version
-          
-          # Only update if versions are different
-          if ($currentVersion -ne $version) {
-            Write-Host "Updating version from $currentVersion to $version"
-            npm version $version --no-git-tag-version
-          } else {
-            Write-Host "Version is already $version, no update needed"
-          }
-        shell: pwsh
 
       - name: Build Windows app
         run: npm run dist:win
@@ -78,25 +59,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        
-      # Set version from tag if this is a tag push
-      - name: Update version from tag if needed
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          # Extract version from tag (remove 'v' prefix)
-          VERSION=${GITHUB_REF_NAME#v}
-          
-          # Get current version from package.json
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          
-          # Only update if versions are different
-          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
-            echo "Updating version from $CURRENT_VERSION to $VERSION"
-            npm version $VERSION --no-git-tag-version
-          else
-            echo "Version is already $VERSION, no update needed"
-          fi
-        shell: bash
 
       - name: Build macOS app
         run: npm run dist:mac
