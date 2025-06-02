@@ -99,36 +99,68 @@ jobs:
           prerelease: false
           generate_release_notes: true
           
-      # Find and upload all artifacts 
-      - name: Find and upload all artifacts
+      # List all files in artifacts to help debugging
+      - name: List all artifact files
         run: |
-          echo "Finding all artifacts..."
-          find ./artifacts -type f -name "*.exe" -o -name "*.msi" -o -name "*.zip" -o -name "*.dmg" -o -name "*.AppImage" | while read file; do
-            echo "Uploading $file..."
-            filename=$(basename "$file")
-            echo "Filename: $filename"
-            
-            if [[ "$file" == *".exe" ]]; then
-              content_type="application/vnd.microsoft.portable-executable"
-            elif [[ "$file" == *".msi" ]]; then
-              content_type="application/x-msi"
-            elif [[ "$file" == *".zip" ]]; then
-              content_type="application/zip"
-            elif [[ "$file" == *".dmg" ]]; then
-              content_type="application/x-apple-diskimage"
-            elif [[ "$file" == *".AppImage" ]]; then
-              content_type="application/x-executable"
-            else
-              content_type="application/octet-stream"
-            fi
-            
-            echo "Content type: $content_type"
-            
-            curl \
-              -X POST \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Content-Type: $content_type" \
-              --data-binary @"$file" \
-              "${{ steps.create_release.outputs.upload_url }}?name=$filename"
-          done
+          find ./artifacts -type f | sort
         shell: bash
+        
+      # Upload Windows EXE
+      - name: Upload Windows EXE
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/windows-builds/Node Modules Cleaner Setup.exe
+          asset_name: Node-Modules-Cleaner-Setup.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+        continue-on-error: true
+        
+      # Upload Windows MSI
+      - name: Upload Windows MSI
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/windows-builds/Node Modules Cleaner.msi
+          asset_name: Node-Modules-Cleaner.msi
+          asset_content_type: application/x-msi
+        continue-on-error: true
+        
+      # Upload Windows ZIP
+      - name: Upload Windows ZIP
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/windows-builds/Node Modules Cleaner-1.0.0.nsis.zip
+          asset_name: Node-Modules-Cleaner-1.0.0-windows.zip
+          asset_content_type: application/zip
+        continue-on-error: true
+        
+      # Upload macOS DMG
+      - name: Upload macOS DMG
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/macos-builds/Node Modules Cleaner-1.0.0.dmg
+          asset_name: Node-Modules-Cleaner-1.0.0.dmg
+          asset_content_type: application/x-apple-diskimage
+        continue-on-error: true
+        
+      # Upload macOS ZIP
+      - name: Upload macOS ZIP
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/macos-builds/Node Modules Cleaner-1.0.0-mac.zip
+          asset_name: Node-Modules-Cleaner-1.0.0-mac.zip
+          asset_content_type: application/zip
+        continue-on-error: true
