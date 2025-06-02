@@ -128,6 +128,16 @@ jobs:
             # URL encode the asset name
             local encoded_name=$(echo "$assetname" | sed 's/ /%20/g')
             
+            # Check if asset already exists
+            local asset_exists=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.id }}/assets" | 
+              grep -c "\"name\":\"$assetname\"")
+            
+            if [[ "$asset_exists" -gt 0 ]]; then
+              echo "Asset $assetname already exists in the release, skipping upload"
+              return 0
+            fi
+            
             # Perform the upload
             curl \
               -X POST \
@@ -140,20 +150,20 @@ jobs:
           }
           
           # Look for Windows assets
-          for file in $(find ./artifacts/windows-builds -type f); do
+          for file in $(find ./artifacts/windows-builds -type f | grep -v "\.blockmap$"); do
             filename=$(basename "$file")
             # Process based on file extension
             if [[ "$filename" == *.exe ]]; then
               upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-Setup.exe" "application/vnd.microsoft.portable-executable"
             elif [[ "$filename" == *.msi ]]; then
               upload_asset "$file" "Node-Modules-Cleaner-${VERSION}.msi" "application/x-msi"
-            elif [[ "$filename" == *.zip ]]; then
+            elif [[ "$filename" == *.zip && "$filename" != *.blockmap ]]; then
               upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-windows.zip" "application/zip"
             fi
           done
           
           # Look for macOS assets
-          for file in $(find ./artifacts/macos-builds -type f); do
+          for file in $(find ./artifacts/macos-builds -type f | grep -v "\.blockmap$"); do
             filename=$(basename "$file")
             # Process based on file extension
             if [[ "$filename" == *.dmg ]]; then
@@ -163,7 +173,7 @@ jobs:
               else
                 upload_asset "$file" "Node-Modules-Cleaner-${VERSION}.dmg" "application/x-apple-diskimage"
               fi
-            elif [[ "$filename" == *.zip && "$filename" != *.blockmap ]]; then
+            elif [[ "$filename" == *.zip ]]; then
               # Check if it's arm64
               if [[ "$filename" == *-arm64-mac.zip ]]; then
                 upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-arm64-mac.zip" "application/zip"
