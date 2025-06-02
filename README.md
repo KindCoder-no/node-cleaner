@@ -11,7 +11,9 @@ A simple desktop application for finding and removing `node_modules` folders fro
 
 ## Screenshots
 
-(Screenshots will be added here)
+<img src="./images/Screenshot-1.png" />
+<img src="./images/Screenshot-2.png" />
+<img src="./images/Screenshot-3.png" />
 
 ## Installation
 
@@ -51,7 +53,7 @@ npm run dev
 
 ## License
 
-ISC © [Emre Sanden](https://github.com/KindCoder-no)
+MIT © [Emre Sanden](https://github.com/KindCoder-no)
 
 
 ## Notes
