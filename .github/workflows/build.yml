@@ -105,62 +105,73 @@ jobs:
           find ./artifacts -type f | sort
         shell: bash
         
-      # Upload Windows EXE
-      - name: Upload Windows EXE
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/windows-builds/Node Modules Cleaner Setup.exe
-          asset_name: Node-Modules-Cleaner-Setup.exe
-          asset_content_type: application/vnd.microsoft.portable-executable
-        continue-on-error: true
+      # Extract version from tag (remove 'v' prefix)
+      - name: Extract version from tag
+        id: extract_version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+        shell: bash
         
-      # Upload Windows MSI
-      - name: Upload Windows MSI
-        uses: actions/upload-release-asset@v1
+      # Use a script to upload all artifacts more dynamically
+      - name: Upload release artifacts
+        run: |
+          VERSION="${{ steps.extract_version.outputs.VERSION }}"
+          echo "Starting uploads for version $VERSION"
+          
+          # Function to upload asset
+          upload_asset() {
+            local filepath="$1"
+            local assetname="$2"
+            local contenttype="$3"
+            
+            echo "Uploading $filepath as $assetname ($contenttype)"
+            
+            # URL encode the asset name
+            local encoded_name=$(echo "$assetname" | sed 's/ /%20/g')
+            
+            # Perform the upload
+            curl \
+              -X POST \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: $contenttype" \
+              -H "Accept: application/vnd.github.v3+json" \
+              --data-binary @"$filepath" \
+              "${{ steps.create_release.outputs.upload_url }}?name=$encoded_name" \
+              --fail || echo "Failed to upload $assetname, continuing..."
+          }
+          
+          # Look for Windows assets
+          for file in $(find ./artifacts/windows-builds -type f); do
+            filename=$(basename "$file")
+            # Process based on file extension
+            if [[ "$filename" == *.exe ]]; then
+              upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-Setup.exe" "application/vnd.microsoft.portable-executable"
+            elif [[ "$filename" == *.msi ]]; then
+              upload_asset "$file" "Node-Modules-Cleaner-${VERSION}.msi" "application/x-msi"
+            elif [[ "$filename" == *.zip ]]; then
+              upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-windows.zip" "application/zip"
+            fi
+          done
+          
+          # Look for macOS assets
+          for file in $(find ./artifacts/macos-builds -type f); do
+            filename=$(basename "$file")
+            # Process based on file extension
+            if [[ "$filename" == *.dmg ]]; then
+              # Check if it's arm64
+              if [[ "$filename" == *-arm64.dmg ]]; then
+                upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-arm64.dmg" "application/x-apple-diskimage"
+              else
+                upload_asset "$file" "Node-Modules-Cleaner-${VERSION}.dmg" "application/x-apple-diskimage"
+              fi
+            elif [[ "$filename" == *.zip && "$filename" != *.blockmap ]]; then
+              # Check if it's arm64
+              if [[ "$filename" == *-arm64-mac.zip ]]; then
+                upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-arm64-mac.zip" "application/zip"
+              else
+                upload_asset "$file" "Node-Modules-Cleaner-${VERSION}-mac.zip" "application/zip"
+              fi
+            fi
+          done
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/windows-builds/Node Modules Cleaner.msi
-          asset_name: Node-Modules-Cleaner.msi
-          asset_content_type: application/x-msi
-        continue-on-error: true
-        
-      # Upload Windows ZIP
-      - name: Upload Windows ZIP
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/windows-builds/Node Modules Cleaner-1.0.0.nsis.zip
-          asset_name: Node-Modules-Cleaner-1.0.0-windows.zip
-          asset_content_type: application/zip
-        continue-on-error: true
-        
-      # Upload macOS DMG
-      - name: Upload macOS DMG
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/macos-builds/Node Modules Cleaner-1.0.0.dmg
-          asset_name: Node-Modules-Cleaner-1.0.0.dmg
-          asset_content_type: application/x-apple-diskimage
-        continue-on-error: true
-        
-      # Upload macOS ZIP
-      - name: Upload macOS ZIP
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/macos-builds/Node Modules Cleaner-1.0.0-mac.zip
-          asset_name: Node-Modules-Cleaner-1.0.0-mac.zip
-          asset_content_type: application/zip
-        continue-on-error: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
